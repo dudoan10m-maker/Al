@@ -4,7 +4,7 @@ from anthropic import Anthropic
 
 app = Flask(__name__)
 
-API_KEY = os.environ.get("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")
+API_KEY = os.environ.get("ANTHROPIC_API_KEY")
 MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-3-5-haiku-latest")
 
 def get_client():
