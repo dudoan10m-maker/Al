@@ -1,8 +1,10 @@
 import os
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from anthropic import Anthropic
 
 app = Flask(__name__)
+CORS(app)
 
 API_KEY = os.environ.get("ANTHROPIC_API_KEY")
 MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-3-5-haiku-latest")
