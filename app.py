@@ -4,27 +4,44 @@ from anthropic import Anthropic
 
 app = Flask(__name__)
 
+# CORS: allow the HTML tool to call this backend from another domain.
 @app.after_request
 def add_cors_headers(response):
     response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, x-api-key"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     return response
 
-API_KEY = os.environ.get("ANTHROPIC_API_KEY")
-MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-3-5-haiku-latest")
+API_KEY = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-3-5-haiku-latest").strip()
+
 
 def get_client():
     if not API_KEY:
-        raise RuntimeError("ANTHROPIC_API_KEY chưa được cấu hình")
+        raise RuntimeError("ANTHROPIC_API_KEY chưa được cấu hình trên Render")
     return Anthropic(api_key=API_KEY)
+
+
+@app.get("/")
+def root():
+    return jsonify({
+        "ok": True,
+        "service": "AI backend",
+        "status": "online",
+        "endpoint": "/analyze"
+    })
+
 
 @app.get("/health")
 def health():
-    return jsonify({"ok": True, "service": "AI backend"})
+    return jsonify({"ok": True, "service": "AI backend", "status": "online"})
 
-@app.post("/analyze")
+
+@app.route("/analyze", methods=["POST", "OPTIONS"])
 def analyze():
+    if request.method == "OPTIONS":
+        return ("", 204)
+
     data = request.get_json(silent=True) or {}
     prompt = str(data.get("prompt", "")).strip()
 
@@ -36,22 +53,21 @@ def analyze():
         message = client.messages.create(
             model=MODEL,
             max_tokens=500,
+            temperature=0,
             messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
+                {"role": "user", "content": prompt}
             ]
         )
 
         text = "".join(
             block.text for block in message.content
             if getattr(block, "type", "") == "text"
-        )
+        ).strip()
 
         return jsonify({
             "ok": True,
-            "result": text
+            "result": text,
+            "model": MODEL
         })
 
     except Exception as e:
@@ -59,6 +75,7 @@ def analyze():
             "ok": False,
             "error": str(e)
         }), 500
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "10000"))
