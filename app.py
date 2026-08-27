@@ -1,10 +1,15 @@
 import os
 from flask import Flask, request, jsonify
-from flask_cors import CORS
 from anthropic import Anthropic
 
 app = Flask(__name__)
-CORS(app)
+
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    return response
 
 API_KEY = os.environ.get("ANTHROPIC_API_KEY")
 MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-3-5-haiku-latest")
